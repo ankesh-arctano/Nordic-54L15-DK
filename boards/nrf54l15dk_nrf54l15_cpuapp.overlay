@@ -1,0 +1,48 @@
+#include <dt-bindings/pinctrl/nrf-pinctrl.h>
+
+&pinctrl {
+    i2c21_default: i2c21_default {
+        group1 {
+            psels = <
+                NRF_PSEL(TWIM_SDA, 1, 8)
+                NRF_PSEL(TWIM_SCL, 1, 9)
+            >;
+            bias-pull-up;
+        };
+    };
+};
+
+&pinctrl {
+    i2s20_default: i2s20_default {
+        group1 {
+            psels = <
+                NRF_PSEL(I2S_SCK_M,  1, 10)
+                NRF_PSEL(I2S_LRCK_M, 1, 11)
+                NRF_PSEL(I2S_SDIN,   1, 12)
+            >;
+        };
+    };
+};
+
+
+&i2c21 {
+    status = "okay";
+    compatible = "nordic,nrf-twim";
+    clock-frequency = <I2C_BITRATE_FAST>;
+    pinctrl-0 = <&i2c21_default>;
+    pinctrl-names = "default";
+    tlv3120: tlv3120@4C {
+        reg = <0x4C>;
+	};
+};
+
+&i2s20 {
+    status = "okay";
+    pinctrl-0 = <&i2s20_default>;
+    pinctrl-names = "default";
+};
+
+&uart20 {
+    current-speed = <1000000>;
+};
+

@@ -1,0 +1,131 @@
+alternate_config:
+
+    tlv_write(0x02, 0x81);   // Wake
+    k_msleep(5);
+
+    //tlv_write(0x07, 0x10);   // I2S, 16-bit
+    tlv_write(0x07, 0x70);   // I2S 32-bit
+    tlv_write(0x13, 0b01101000);
+    tlv_write(0x14, 0b01000100);
+    tlv_write(0x3C, 0b10100000);
+    tlv_write(0x3E, 201);
+    tlv_write(0x3F, 8);
+    tlv_write(0x6B, 0b00100000);
+    tlv_write(0x6C, 0b00011000);
+    tlv_write(0x73, 0xC0);   // Enable ADC channels
+    //tlv_write(0x73, 0x80);  // left only
+    tlv_write(0x74, 0b01100000);   // Enable ASI output
+    tlv_write(0x75, 0xE0);   // Power ADC + PLL
+
+
+
+
+    rohit:
+    void setupTlv320Adc(user_input_t myvariable)
+{
+    uint8_t deviceAddress = 0b01001100; // 0x4C;
+
+    write_and_read_reg(deviceAddress, 0x01, 0b00000001); // Software reset
+    write_and_read_reg(deviceAddress, 0x02, 0b10000001); // Internally generated AREG = 1.8V, Device not in sleep mode,
+
+    if (myvariable.resolution == 32)
+    {
+        printf("-----Resolution------\n");
+        write_and_read_reg(deviceAddress, 0x07, 0b01110000); // ASI = I2S, Word/Slot length = 32bits, BCLK polarity = inverted(std protocol) , TX_EDGE = inverted, HiZ
+        write_and_read_reg(deviceAddress, 0x14, 0b01000100); // FSYNC = 48kHz, Ratio = 64
+    }
+    else
+    {
+        printf("-----Else of Resolution------");
+        write_and_read_reg(deviceAddress, 0x07, 0b01000000); // ASI = I2S, Word/Slot length = 16bits, BCLK polarity = inverted(std protocol) , TX_EDGE = inverted, HiZ
+        write_and_read_reg(deviceAddress, 0x14, 0b01000010); // FSYNC = 48kHz, Ratio = 32
+    }
+
+    write_and_read_reg(deviceAddress, 0x08, 0b00111111); // Transmit LSB for a full cycle, enabled Bus Keeper
+    write_and_read_reg(deviceAddress, 0x13, 0b00000001); // enabled slave mode, auto clock configuration enabled, PLL enabled, not forced gate, FSYNC multiples of = 48, MCLK = 12.288
+    write_and_read_reg(deviceAddress, 0x16, 0b00001000); // disabled MCLK_RATIO_SEL (enabled MCLK_FREQ_SEL), RATIO(for FREQ_SEL) = 512
+    write_and_read_reg(deviceAddress, 0x21, 0b10100000); // GPIO ENABLED as MCLK input
+    /*
+       7 - low microphone
+       6&5 - 0 Analog differential / 1 Single Ended
+       4 - low AC coupled
+       3&2 - Impedance 0 - 2.5k
+    */
+    write_and_read_reg(deviceAddress, 0x3C, 0b00011000); // Channel 1 - mic Input, Analog Differential (4th,5th bit), DC-coupled (4th bit), Impedence = 20kohm
+    write_and_read_reg(deviceAddress, 0x41, 0b00011000); // Channel 2 - mic Input, Analog Differential (4th,5th bit), DC-coupled (4th bit), Impedence = 20kohm
+    write_and_read_reg(deviceAddress, 0x46, 0b00011000); // Channel 3 - mic Input, Analog Differential (4th,5th bit), DC-coupled (4th bit), Impedence = 20kohm
+    write_and_read_reg(deviceAddress, 0x4B, 0b00111000); // Channel 4 - mic Input, Analog Single-ended (4th,5th bit), DC-coupled (4th bit), Impedence = 20kohm
+    // write_and_read_reg(deviceAddress, 0x4B, 0b00011000); // Channel 4 - mic Input, Analog Differential (4th,5th bit), DC-coupled (4th bit), Impedence = 20kohm
+
+    write_and_read_reg(deviceAddress, 0x6B, 0b00000000); // Default HPF removed
+
+    if (myvariable.TLVch1)
+    {
+        if (myvariable.TLVch2)
+        {
+            write_and_read_reg(deviceAddress, 0x0B, 0b00000000); // Channel 1 given I2S left slot 0
+            write_and_read_reg(deviceAddress, 0x0C, 0b00100000); // Channel 2 given I2S right slot 0
+            write_and_read_reg(deviceAddress, 0x73, 0b11000000); // 2 Channels enabled - 1st and 2nd
+            write_and_read_reg(deviceAddress, 0x74, 0b11000000); // 2 Channels output enabled 1st and 2nd
+        }
+        else if (myvariable.TLVch3)
+        {
+          
+            write_and_read_reg(deviceAddress, 0x0B, 0b00000000); // Channel 1 given I2S left slot 0
+            write_and_read_reg(deviceAddress, 0x0D, 0b00100000); // Channel 3 given I2S right slot 0
+            write_and_read_reg(deviceAddress, 0x73, 0b10100000); // 2 Channels enabled - 1st and 3rd
+            write_and_read_reg(deviceAddress, 0x74, 0b10100000); // 2 Channels output enabled 1st and 3rd
+        }
+        else
+        {
+            write_and_read_reg(deviceAddress, 0x0B, 0b00000000); // Channel 1 given I2S left slot 0
+            write_and_read_reg(deviceAddress, 0x0E, 0b00100000); // Channel 4 given I2S right slot 0
+            write_and_read_reg(deviceAddress, 0x73, 0b10010000); // 2 Channels enabled - 1st and 4th
+            write_and_read_reg(deviceAddress, 0x74, 0b10010000); // 2 Channels output enabled 1st and 4th
+        }
+    }
+    else if (myvariable.TLVch2)
+    {
+        if (myvariable.TLVch3)
+        {
+            write_and_read_reg(deviceAddress, 0x0C, 0b00000000); // Channel 2 given I2S left slot 0
+            write_and_read_reg(deviceAddress, 0x0D, 0b00100000); // Channel 3 given I2S right slot 0
+            write_and_read_reg(deviceAddress, 0x73, 0b01100000); // 2 Channels enabled - 2nd and 3rd
+            write_and_read_reg(deviceAddress, 0x74, 0b01100000); // 2 Channels output enabled 2nd and 3rd
+        }
+        else
+        {
+            write_and_read_reg(deviceAddress, 0x0C, 0b00000000); // Channel 2 given I2S left slot 0
+            write_and_read_reg(deviceAddress, 0x0E, 0b00100000); // Channel 4 given I2S right slot 0
+            write_and_read_reg(deviceAddress, 0x73, 0b01010000); // 2 Channels enabled - 2nd and 4th
+            write_and_read_reg(deviceAddress, 0x74, 0b01010000); // 2 Channels output enabled 2nd and 4th
+        }
+    }
+    else if (myvariable.TLVch3)
+    {
+        write_and_read_reg(deviceAddress, 0x0D, 0b00000000); // Channel 3 given I2S left slot 0
+        write_and_read_reg(deviceAddress, 0x0E, 0b00100000); // Channel 4 given I2S right slot 0
+        write_and_read_reg(deviceAddress, 0x73, 0b00110000); // 2 Channels enabled - 3rd and 4th
+        write_and_read_reg(deviceAddress, 0x74, 0b00110000); // 2 Channels output enabled 3rd and 4th
+  
+  
+    }
+    else
+    {
+        write_and_read_reg(deviceAddress, 0x0E, 0b00000000); // Channel 4 given I2S left slot 0
+        write_and_read_reg(deviceAddress, 0x0B, 0b00100000); // Channel 1 given I2S right slot 0
+        write_and_read_reg(deviceAddress, 0x73, 0b10010000); // 2 Channels enabled - 1st and 4th
+        write_and_read_reg(deviceAddress, 0x74, 0b10010000); // 2 Channels output enabled 1st and 4th
+    }
+
+    write_and_read_reg(deviceAddress, 0x75, 0b01100000); // Power up ADC, Power up PLL
+
+    printf("Status Registers read:\n");
+    uint8_t dataRead = 0;
+    m_i2c_read_data(deviceAddress, 0x15, 1, &dataRead);
+    // write_and_read_reg(I2C_MASTER_NUM, Info_ADDR, &reg_addr, 1, data, len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    // m_i2c_read_data(deviceAddress, 0x3D, 1, &dataRead);
+    // m_i2c_read_data(deviceAddress, 0x3E, 1, &dataRead);
+    m_i2c_read_data(deviceAddress, 0x76, 1, &dataRead);
+    m_i2c_read_data(deviceAddress, 0x77, 1, &dataRead);
+}
